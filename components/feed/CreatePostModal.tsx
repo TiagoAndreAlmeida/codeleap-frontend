@@ -7,18 +7,18 @@ interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPostCreated: (title: string, content: string) => void;
+  isLoading?: boolean;
 }
 
-export default function CreatePostModal({ isOpen, onClose, onPostCreated }: CreatePostModalProps) {
+export default function CreatePostModal({ isOpen, onClose, onPostCreated, isLoading }: CreatePostModalProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const isDisabled = title.trim() === "" || content.trim() === "";
+  const isDisabled = title.trim() === "" || content.trim() === "" || isLoading;
 
   const handleCreate = () => {
     onPostCreated(title, content);
     setTitle("");
     setContent("");
-    onClose();
   };
 
   return (
@@ -30,9 +30,10 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
           <label className="text-base font-normal text-black">Title</label>
           <input
             placeholder="Hello world"
-            className="h-8 w-full rounded-lg border border-input-border px-3 text-sm outline-none focus:ring-1 focus:ring-primary"
+            className="h-8 w-full rounded-lg border border-input-border px-3 text-sm outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            disabled={isLoading}
           />
         </div>
         
@@ -40,9 +41,10 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
           <label className="text-base font-normal text-black">Content</label>
           <textarea
             placeholder="Content here"
-            className="min-h-[120px] w-full rounded-lg border border-input-border p-3 text-sm outline-none resize-none focus:ring-1 focus:ring-primary"
+            className="min-h-[120px] w-full rounded-lg border border-input-border p-3 text-sm outline-none resize-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            disabled={isLoading}
           />
         </div>
       </div>
@@ -55,7 +57,7 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
           disabled={isDisabled}
           onClick={handleCreate}
         >
-          Create
+          {isLoading ? "Creating..." : "Create"}
         </button>
       </div>
     </Modal>

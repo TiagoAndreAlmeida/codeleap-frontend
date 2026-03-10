@@ -9,6 +9,7 @@ interface EditPostModalProps {
   onConfirm: (title: string, content: string) => void;
   initialTitle: string;
   initialContent: string;
+  isLoading?: boolean;
 }
 
 export default function EditPostModal({ 
@@ -16,7 +17,8 @@ export default function EditPostModal({
   onClose, 
   onConfirm, 
   initialTitle, 
-  initialContent 
+  initialContent,
+  isLoading
 }: EditPostModalProps) {
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
@@ -28,7 +30,7 @@ export default function EditPostModal({
     }
   }, [isOpen, initialTitle, initialContent]);
 
-  const isSaveDisabled = title.trim() === "" || content.trim() === "";
+  const isSaveDisabled = title.trim() === "" || content.trim() === "" || isLoading;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="660px">
@@ -39,18 +41,20 @@ export default function EditPostModal({
           <label className="text-base font-normal text-black">Title</label>
           <input
             placeholder="Hello world"
-            className="h-8 w-full rounded-lg border border-input-border px-3 text-sm outline-none"
+            className="h-8 w-full rounded-lg border border-input-border px-3 text-sm outline-none disabled:opacity-50"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            disabled={isLoading}
           />
         </div>
         <div className="flex flex-col gap-2">
           <label className="text-base font-normal text-black">Content</label>
           <textarea
             placeholder="Content here"
-            className="min-h-[74px] w-full rounded-lg border border-input-border p-3 text-sm outline-none resize-none"
+            className="min-h-[74px] w-full rounded-lg border border-input-border p-3 text-sm outline-none resize-none disabled:opacity-50"
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            disabled={isLoading}
           />
         </div>
       </div>
@@ -58,7 +62,8 @@ export default function EditPostModal({
       <div className="flex justify-end gap-4 mt-2">
         <button
           onClick={onClose}
-          className="h-8 w-[120px] rounded-lg border border-black font-bold text-black hover:bg-gray-100 transition-colors"
+          disabled={isLoading}
+          className="h-8 w-[120px] rounded-lg border border-black font-bold text-black hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Cancel
         </button>
@@ -71,7 +76,7 @@ export default function EditPostModal({
             }`}
           disabled={isSaveDisabled}
         >
-          Save
+          {isLoading ? "Saving..." : "Save"}
         </button>
       </div>
     </Modal>

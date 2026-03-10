@@ -1,52 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
+  const { user, loginWithGoogle } = useAuth();
   const router = useRouter();
 
-  const isButtonDisabled = username.trim() === "";
-
-  const handleEnter = () => {
-    localStorage.setItem("codeleap_username", username.trim());
-    router.push("/feed");
-  };
+  useEffect(() => {
+    if (user) {
+      router.push("/feed");
+    }
+  }, [user, router]);
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-background px-4">
-      <section className="flex w-full max-w-[500px] flex-col gap-6 rounded-2xl bg-modal p-6 shadow-xl sm:p-12">
-        <h1 className="text-[22px] font-bold leading-none text-black">
+      <section className="flex w-full max-w-[500px] flex-col gap-10 rounded-2xl bg-modal p-12 shadow-xl">
+        <h1 className="text-[22px] font-bold leading-none text-black text-center">
           Welcome to CodeLeap network!
         </h1>
         
-        <div className="flex flex-col gap-2">
-          <label htmlFor="username" className="text-base font-normal leading-none text-black">
-            Please enter your username
-          </label>
-          <input
-            id="username"
-            type="text"
-            placeholder="John doe"
-            autoComplete="off"
-            className="h-8 w-full rounded-lg border border-input-border px-3 text-sm outline-none placeholder:text-placeholder focus:ring-1 focus:ring-primary"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
-
-        <div className="flex justify-end">
+        <div className="flex flex-col gap-6 items-center">
+          <p className="text-base text-center text-gray-600">
+            Sign in with your Google account to access the network.
+          </p>
+          
           <button
-            className={`h-8 w-full rounded-lg text-base font-bold text-white transition-all sm:w-[111px] 
-              ${isButtonDisabled 
-                ? "cursor-not-allowed bg-primary-disabled" 
-                : "cursor-pointer bg-primary hover:bg-primary-hover active:scale-95"
-              }`}
-            disabled={isButtonDisabled}
-            onClick={handleEnter}
+            onClick={loginWithGoogle}
+            className="flex items-center justify-center gap-4 w-full h-12 rounded-lg border border-input-border bg-white font-bold text-black hover:bg-gray-50 transition-all active:scale-95 shadow-sm px-6"
           >
-            ENTER
+            <Image 
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+              alt="Google Icon" 
+              width={20} 
+              height={20} 
+            />
+            Sign in with Google
           </button>
         </div>
       </section>

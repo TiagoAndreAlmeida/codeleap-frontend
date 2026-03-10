@@ -2,27 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { useGetPosts, useCreatePost, useUpdatePost, useDeletePost, Post } from "@/hooks/usePosts";
 import PostCard from "@/components/feed/PostCard";
 import CreatePostTrigger from "@/components/feed/CreatePostTrigger";
 import CreatePostModal from "@/components/feed/CreatePostModal";
 import DeletePostModal from "@/components/feed/DeletePostModal";
 import EditPostModal from "@/components/feed/EditPostModal";
 
-interface Post {
-  id: number;
-  username: string;
-  title: string;
-  content: string;
-  created_datetime: string;
-}
-
 export default function FeedPage() {
   const router = useRouter();
-  const [username, setUsername] = useState<string>("");
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user, logout, loading: authLoading } = useAuth();
   
-  // Estados dos Modais
+  // React Query Hooks
+  const { data: posts, isLoading: isPostsLoading, isError } = useGetPosts();
+  const createPostMutation = useCreatePost();
+  const updatePostMutation = useUpdatePost();
+  const deletePostMutation = useDeletePost();
+  
+  // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -31,101 +29,83 @@ export default function FeedPage() {
   const [postToEdit, setPostToEdit] = useState<Post | null>(null);
 
   useEffect(() => {
-    const savedUsername = localStorage.getItem("codeleap_username");
-    if (!savedUsername) {
+    if (!authLoading && !user) {
       router.push("/");
-      return;
     }
-    setUsername(savedUsername);
+  }, [user, authLoading, router]);
 
-    setPosts([
-      {
-        id: 1,
-        username: "Victor",
-        title: "My First Post at CodeLeap Network!",
-        content: "Curabitur suscipit suscipit tellus. Phasellus consectetuer vestibulum elit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.",
-        created_datetime: new Date(Date.now() - 25 * 60000).toISOString(),
-      }
-    ]);
-    setLoading(false);
-  }, [router]);
-
-  const handleCreatePost = (title: string, content: string) => {
-    const newPost: Post = {
-      id: Date.now(),
-      username,
-      title,
-      content,
-      created_datetime: new Date().toISOString(),
-    };
-    setPosts([newPost, ...posts]);
+  const handleCreatePost = async (title: string, content: string) => {
+    await createPostMutation.mutateAsync({ title, content });
+    setIsCreateModalOpen(false);
   };
 
-  const openDeleteModal = (id: number) => {
-    setPostIdToDelete(id);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (postIdToDelete !== null) {
-      setPosts(posts.filter(p => p.id !== postIdToDelete));
+      await deletePostMutation.mutateAsync(postIdToDelete);
       setIsDeleteModalOpen(false);
       setPostIdToDelete(null);
     }
   };
 
-  const openEditModal = (post: Post) => {
-    setPostToEdit(post);
-    setIsEditModalOpen(true);
-  };
-
-  const confirmEdit = (title: string, content: string) => {
+  const confirmEdit = async (title: string, content: string) => {
     if (postToEdit) {
-      setPosts(posts.map(p => p.id === postToEdit.id ? { ...p, title, content } : p));
+      await updatePostMutation.mutateAsync({ id: postToEdit.id, title, content });
       setIsEditModalOpen(false);
       setPostToEdit(null);
     }
   };
 
-  if (loading) return null;
+  if (authLoading || !user) return null;
 
   return (
     <div className="min-h-screen w-full bg-background flex flex-col items-center pb-10">
-      <header className="fixed top-0 z-10 flex h-20 w-full max-w-[800px] items-center bg-primary px-8">
+      <header className="fixed top-0 z-10 flex h-20 w-full max-w-[800px] items-center justify-between bg-primary px-8 shadow-md">
         <h1 className="text-[22px] font-bold text-white">CodeLeap Network</h1>
+        <button 
+          onClick={logout}
+          className="text-white hover:underline font-bold text-sm cursor-pointer"
+        >
+          Logout
+        </button>
       </header>
 
       <main className="mt-20 flex w-full max-w-[800px] flex-col gap-6 bg-white p-6 min-h-[calc(100vh-80px)] shadow-sm">
-        {/* Novo Gatilho Estilo Rede Social */}
         <CreatePostTrigger 
-          username={username} 
+          username={user.displayName || user.email?.split('@')[0] || "user"} 
           onClick={() => setIsCreateModalOpen(true)} 
         />
         
-        <div className="flex flex-col gap-6">
-          {posts.map((post) => (
-            <PostCard 
-              key={post.id} 
-              post={post} 
-              currentUser={username} 
-              onDelete={openDeleteModal}
-              onEdit={openEditModal}
-            />
-          ))}
-        </div>
+        {isPostsLoading ? (
+          <div className="flex justify-center py-10 text-gray-500 font-bold">Loading posts...</div>
+        ) : isError ? (
+          <div className="flex justify-center py-10 text-red-500 font-bold">Error loading posts. Please try again.</div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {posts?.map((post) => (
+              <PostCard 
+                key={post.id} 
+                post={post} 
+                onDelete={(id) => { setPostIdToDelete(id); setIsDeleteModalOpen(true); }}
+                onEdit={(p) => { setPostToEdit(p); setIsEditModalOpen(true); }}
+              />
+            ))}
+          </div>
+        )}
       </main>
 
-      {/* Modais de Gerenciamento de Postagens */}
+      {/* Modals */}
       <CreatePostModal 
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onPostCreated={handleCreatePost}
+        isLoading={createPostMutation.isPending}
       />
 
       <DeletePostModal 
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
+        isLoading={deletePostMutation.isPending}
       />
 
       <EditPostModal 
@@ -134,6 +114,7 @@ export default function FeedPage() {
         onConfirm={confirmEdit}
         initialTitle={postToEdit?.title || ""}
         initialContent={postToEdit?.content || ""}
+        isLoading={updatePostMutation.isPending}
       />
     </div>
   );

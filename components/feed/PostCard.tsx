@@ -1,25 +1,15 @@
 "use client";
 
 import Image from "next/image";
-
-interface Post {
-  id: number;
-  username: string;
-  title: string;
-  content: string;
-  created_datetime: string;
-}
+import { Post } from "@/hooks/usePosts";
 
 interface PostCardProps {
   post: Post;
-  currentUser: string;
   onDelete: (id: number) => void;
   onEdit: (post: Post) => void;
 }
 
-export default function PostCard({ post, currentUser, onDelete, onEdit }: PostCardProps) {
-  const isOwner = post.username === currentUser;
-
+export default function PostCard({ post, onDelete, onEdit }: PostCardProps) {
   const timeAgo = (date: string) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
     if (seconds < 60) return "just now";
@@ -32,7 +22,9 @@ export default function PostCard({ post, currentUser, onDelete, onEdit }: PostCa
     <article className="flex flex-col overflow-hidden rounded-2xl border border-input-border shadow-sm transition-all hover:shadow-md">
       <header className="flex h-[70px] items-center justify-between bg-primary px-6 text-white">
         <h3 className="text-[22px] font-bold truncate pr-4">{post.title}</h3>
-        {isOwner && (
+        
+        {/* Agora verificamos o campo is_owner vindo diretamente do Backend */}
+        {post.is_owner && (
           <div className="flex items-center gap-6">
             <button 
               onClick={() => onDelete(post.id)}
