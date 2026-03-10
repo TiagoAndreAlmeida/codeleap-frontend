@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #DDDDDD;
+  --color-modal: #FFFFFF;
+  --color-primary: #7695EC;
+  --color-primary-hover: #5d78cc;
+  --color-primary-disabled: #CCCCCC;
+  --color-input-border: #777777;
+  --color-placeholder: #CCCCCC;
+  --color-delete: #FF5151;
+  --color-delete-hover: #e04545;
+  --color-save: #47B845;
+  --color-save-hover: #3ca13a;
+  
+  --shadow-xl: 0 4px 10px 0 rgba(0, 0, 0, 0.1);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-black m-0 p-0;
+  }
+  
+  html, body {
+    height: 100%;
+    width: 100%;
+  }
+}
