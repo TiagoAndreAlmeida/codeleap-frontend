@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Post, useLikePost } from "@/hooks/usePosts";
 import { useGetComments, useCreateComment, useUpdateComment, useDeleteComment, Comment } from "@/hooks/useComments";
 import DeletePostModal from "./DeletePostModal";
+import { timeAgo } from "@/lib/utils";
 
 interface PostCardProps {
   post: Post;
@@ -27,14 +28,6 @@ export default function PostCard({ post, onDelete, onEdit }: PostCardProps) {
   } = useGetComments(post.id, showComments);
 
   const createCommentMutation = useCreateComment(post.id);
-
-  const timeAgo = (date: string) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return "just now";
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} minutes ago`;
-    return `${Math.floor(minutes / 60)} hours ago`;
-  };
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -112,7 +105,7 @@ export default function PostCard({ post, onDelete, onEdit }: PostCardProps) {
               ) : (
                 <>
                   {allComments.map((comment) => (
-                    <CommentItem key={comment.id} comment={comment} postId={post.id} timeAgo={timeAgo} />
+                    <CommentItem key={comment.id} comment={comment} postId={post.id} />
                   ))}
                   {hasNextPage && (
                     <button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="text-xs text-primary font-bold hover:underline py-2 disabled:opacity-50">
@@ -135,7 +128,7 @@ export default function PostCard({ post, onDelete, onEdit }: PostCardProps) {
   );
 }
 
-function CommentItem({ comment, postId, timeAgo }: { comment: Comment; postId: number; timeAgo: (d: string) => string }) {
+function CommentItem({ comment, postId }: { comment: Comment; postId: number }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
