@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useGetPosts, useCreatePost, useUpdatePost, useDeletePost, Post } from "@/hooks/usePosts";
@@ -13,9 +13,18 @@ import EditPostModal from "@/components/feed/EditPostModal";
 export default function FeedPage() {
   const router = useRouter();
   const { user, logout, loading: authLoading } = useAuth();
+  const observerRef = useRef<HTMLDivElement>(null);
   
-  // React Query Hooks
-  const { data: posts, isLoading: isPostsLoading, isError } = useGetPosts();
+  // Infinite Query Hook
+  const { 
+    data, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage, 
+    isLoading: isPostsLoading, 
+    isError 
+  } = useGetPosts();
+  
   const createPostMutation = useCreatePost();
   const updatePostMutation = useUpdatePost();
   const deletePostMutation = useDeletePost();
@@ -28,11 +37,33 @@ export default function FeedPage() {
   const [postIdToDelete, setPostIdToDelete] = useState<number | null>(null);
   const [postToEdit, setPostToEdit] = useState<Post | null>(null);
 
+  // Auth Protection
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/");
     }
   }, [user, authLoading, router]);
+
+  // Infinite Scroll Intersection Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Flattening data from pages
+  const allPosts = data?.pages.flatMap((page) => page.results) || [];
 
   const handleCreatePost = async (title: string, content: string) => {
     await createPostMutation.mutateAsync({ title, content });
@@ -76,20 +107,40 @@ export default function FeedPage() {
         />
         
         {isPostsLoading ? (
-          <div className="flex justify-center py-10 text-gray-500 font-bold">Loading posts...</div>
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="h-10 w-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            <p className="text-gray-500 font-bold">Loading initial posts...</p>
+          </div>
         ) : isError ? (
           <div className="flex justify-center py-10 text-red-500 font-bold">Error loading posts. Please try again.</div>
         ) : (
-          <div className="flex flex-col gap-6">
-            {posts?.map((post) => (
-              <PostCard 
-                key={post.id} 
-                post={post} 
-                onDelete={(id) => { setPostIdToDelete(id); setIsDeleteModalOpen(true); }}
-                onEdit={(p) => { setPostToEdit(p); setIsEditModalOpen(true); }}
-              />
-            ))}
-          </div>
+          <>
+            <div className="flex flex-col gap-6">
+              {allPosts.map((post) => (
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  onDelete={(id) => { setPostIdToDelete(id); setIsDeleteModalOpen(true); }}
+                  onEdit={(p) => { setPostToEdit(p); setIsEditModalOpen(true); }}
+                />
+              ))}
+            </div>
+
+            {/* Invisible observer element for Infinite Scroll */}
+            <div ref={observerRef} className="py-10 flex flex-col justify-center items-center gap-2">
+              {isFetchingNextPage && (
+                <>
+                  <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                  <span className="text-gray-500 text-sm font-medium">Loading more...</span>
+                </>
+              )}
+              {!hasNextPage && allPosts.length > 0 && (
+                <div className="text-gray-400 text-sm italic border-t border-gray-100 w-full pt-4 text-center">
+                  You reached the end of the feed.
+                </div>
+              )}
+            </div>
+          </>
         )}
       </main>
 
