@@ -108,7 +108,7 @@ Build the optimized image and start the container:
 docker compose up -d --build
 ```
 
-The application will be available at `http://localhost:3000`.
+The application will be available at `http://localhost:3001`.
 
 ---
 

@@ -14,7 +14,7 @@ services:
     container_name: codeleap-frontend
     restart: always
     ports:
-      - "3000:3000"
+      - "3001:3000"
     networks:
       - shared_network
 
