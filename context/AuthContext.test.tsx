@@ -1,7 +1,7 @@
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { AuthProvider, useAuth } from "./AuthContext";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { vi, describe, it, expect, beforeEach, Mock } from "vitest";
 import React from "react";
 
 // 1. Mocks das funções do Firebase
@@ -23,10 +23,9 @@ vi.mock("@/lib/firebase", () => ({
 
 // Componente auxiliar para consumir o Hook useAuth
 const TestComponent = () => {
-  const { user, logout, loading } = useAuth();
+  const { user, logout } = useAuth();
   
   // Nota: O AuthProvider atual só renderiza children quando loading é false.
-  // Então este TestComponent só aparecerá quando o carregamento terminar.
   return (
     <div>
       <div data-testid="user-email">{user?.email || "no-user"}</div>
@@ -38,7 +37,6 @@ const TestComponent = () => {
 describe("AuthContext", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Silenciar console.log durante os testes para um output mais limpo
     vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
@@ -48,9 +46,9 @@ describe("AuthContext", () => {
       email: "test@codeleap.com", 
       uid: "123",
       getIdToken: vi.fn().mockResolvedValue("fake-token")
-    };
+    } as unknown as User;
 
-    (onAuthStateChanged as any).mockImplementation((auth, callback) => {
+    (onAuthStateChanged as Mock).mockImplementation((_auth, callback) => {
       callback(mockUser);
       return () => {}; 
     });
@@ -68,7 +66,7 @@ describe("AuthContext", () => {
   });
 
   it("should show 'no-user' when user is not logged in", async () => {
-    (onAuthStateChanged as any).mockImplementation((auth, callback) => {
+    (onAuthStateChanged as Mock).mockImplementation((_auth, callback) => {
       callback(null);
       return () => {};
     });
@@ -89,9 +87,9 @@ describe("AuthContext", () => {
       email: "test@codeleap.com", 
       uid: "123",
       getIdToken: vi.fn().mockResolvedValue("fake-token")
-    };
+    } as unknown as User;
 
-    (onAuthStateChanged as any).mockImplementation((auth, callback) => {
+    (onAuthStateChanged as Mock).mockImplementation((_auth, callback) => {
       callback(mockUser);
       return () => {};
     });

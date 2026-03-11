@@ -1,6 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import api from "./api";
 import { auth } from "@/lib/firebase";
+import { InternalAxiosRequestConfig } from "axios";
+
+// Interface para tipar o acesso interno aos interceptores do Axios nos testes
+interface AxiosInterceptorHandler {
+  fulfilled: (config: InternalAxiosRequestConfig) => Promise<InternalAxiosRequestConfig> | InternalAxiosRequestConfig;
+  rejected: (error: unknown) => Promise<unknown>;
+}
 
 // Mock do Firebase Auth para não depender do Firebase real nos testes
 vi.mock("@/lib/firebase", () => ({
@@ -9,11 +16,17 @@ vi.mock("@/lib/firebase", () => ({
   },
 }));
 
+const mockAuth = auth as unknown as {
+  currentUser: {
+    getIdToken: Mock;
+  } | null;
+};
+
 describe("API Interceptor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reseta o usuário para nulo antes de cada teste
-    (auth as any).currentUser = null;
+    mockAuth.currentUser = null;
   });
 
   it("should add Authorization header when user is logged in", async () => {
@@ -21,16 +34,16 @@ describe("API Interceptor", () => {
     const mockToken = "fake-jwt-token";
     const getIdTokenMock = vi.fn().mockResolvedValue(mockToken);
     
-    (auth as any).currentUser = {
+    mockAuth.currentUser = {
       getIdToken: getIdTokenMock,
     };
 
-    // 2. Acessar o interceptor de requisição registrado na instância do axios
-    // O axios armazena os handlers internamente em uma lista
-    const requestInterceptor = (api.interceptors.request as any).handlers[0].fulfilled;
+    // 2. Acessar o interceptor de requisição tipado
+    const handlers = (api.interceptors.request as unknown as { handlers: AxiosInterceptorHandler[] }).handlers;
+    const requestInterceptor = handlers[0].fulfilled;
 
     // 3. Executar o interceptor com um objeto de configuração simulado
-    const config = { headers: {} as any };
+    const config = { headers: {} } as unknown as InternalAxiosRequestConfig;
     const result = await requestInterceptor(config);
 
     // 4. Validar se o token foi anexado corretamente no padrão Bearer
@@ -40,12 +53,13 @@ describe("API Interceptor", () => {
 
   it("should NOT add Authorization header when user is NOT logged in", async () => {
     // 1. Garantir que não há usuário logado
-    (auth as any).currentUser = null;
+    mockAuth.currentUser = null;
 
-    const requestInterceptor = (api.interceptors.request as any).handlers[0].fulfilled;
+    const handlers = (api.interceptors.request as unknown as { handlers: AxiosInterceptorHandler[] }).handlers;
+    const requestInterceptor = handlers[0].fulfilled;
 
     // 2. Executar o interceptor
-    const config = { headers: {} as any };
+    const config = { headers: {} } as unknown as InternalAxiosRequestConfig;
     const result = await requestInterceptor(config);
 
     // 3. Validar que o cabeçalho Authorization não foi criado
@@ -54,18 +68,24 @@ describe("API Interceptor", () => {
 
   it("should maintain existing headers when adding Authorization", async () => {
     // 1. Simular usuário logado
-    (auth as any).currentUser = {
-      getIdToken: vi.fn().mockResolvedValue("token-abc"),
+    const getIdTokenMock = vi.fn().mockResolvedValue("token-abc");
+    mockAuth.currentUser = {
+      getIdToken: getIdTokenMock,
     };
 
-    const requestInterceptor = (api.interceptors.request as any).handlers[0].fulfilled;
+    const handlers = (api.interceptors.request as unknown as { handlers: AxiosInterceptorHandler[] }).handlers;
+    const requestInterceptor = handlers[0].fulfilled;
 
-    // 2. Simular config que já possui outros headers (ex: Content-Type)
+    // 2. Simular config que já possui outros headers
     const config = { 
       headers: { 
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        has: vi.fn(),
         "X-Custom-Header": "custom-value" 
-      } as any 
-    };
+      }
+    } as unknown as InternalAxiosRequestConfig;
     
     const result = await requestInterceptor(config);
 

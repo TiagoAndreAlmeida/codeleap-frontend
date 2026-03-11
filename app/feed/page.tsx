@@ -160,6 +160,7 @@ export default function FeedPage() {
       />
 
       <EditPostModal 
+        key={postToEdit?.id || "edit-post"}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onConfirm={confirmEdit}

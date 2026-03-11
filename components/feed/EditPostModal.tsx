@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Modal from "@/components/shared/Modal";
 
 interface EditPostModalProps {
@@ -22,13 +22,6 @@ export default function EditPostModal({
 }: EditPostModalProps) {
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
-
-  useEffect(() => {
-    if (isOpen) {
-      setTitle(initialTitle);
-      setContent(initialContent);
-    }
-  }, [isOpen, initialTitle, initialContent]);
 
   const isSaveDisabled = title.trim() === "" || content.trim() === "" || isLoading;
 

@@ -40,11 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       
-      // Log raw login result
+      // Log successful login
       console.log("🚀 [Firebase] Google Login Success:", {
-        user: result.user,
-        credential: result.credential,
-        additionalUserInfo: (result as any)._tokenResponse // Extra info like isNewUser
+        user: result.user
       });
 
     } catch (error) {

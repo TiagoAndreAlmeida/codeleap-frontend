@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { useGetPosts, useCreatePost, useDeletePost } from "./usePosts";
 import api from "@/lib/api";
 import React from "react";
@@ -18,6 +18,13 @@ vi.mock("@/lib/api", () => ({
     },
   },
 }));
+
+const mockApi = api as unknown as {
+  get: Mock;
+  post: Mock;
+  patch: Mock;
+  delete: Mock;
+};
 
 // 2. Setup do QueryClient estável por teste
 const createTestQueryClient = () => new QueryClient({
@@ -54,7 +61,7 @@ describe("usePosts Hooks", () => {
         ],
       };
 
-      (api.get as any).mockResolvedValue({ data: mockPostsData });
+      mockApi.get.mockResolvedValue({ data: mockPostsData });
 
       const { result } = renderHook(() => useGetPosts(), { wrapper });
 
@@ -74,7 +81,7 @@ describe("usePosts Hooks", () => {
         previous: null,
         results: [{ id: 1, title: "Old Post", content: "...", username: "user" }],
       };
-      (api.get as any).mockResolvedValue({ data: initialData });
+      mockApi.get.mockResolvedValue({ data: initialData });
 
       const { result } = renderHook(() => ({
         get: useGetPosts(),
@@ -86,7 +93,7 @@ describe("usePosts Hooks", () => {
 
       // 2. Ação: Criar um novo post
       const newPost = { id: 2, title: "New Post", content: "New Content", username: "tiago" };
-      (api.post as any).mockResolvedValue({ data: newPost });
+      mockApi.post.mockResolvedValue({ data: newPost });
 
       // Executa a mutação
       await result.current.create.mutateAsync({ title: "New Post", content: "New Content" });
@@ -109,7 +116,7 @@ describe("usePosts Hooks", () => {
         previous: null,
         results: [{ id: 99, title: "To be deleted", content: "...", username: "user" }],
       };
-      (api.get as any).mockResolvedValue({ data: initialData });
+      mockApi.get.mockResolvedValue({ data: initialData });
 
       const { result } = renderHook(() => ({
         get: useGetPosts(),
@@ -120,7 +127,7 @@ describe("usePosts Hooks", () => {
       expect(result.current.get.data?.pages[0].results).toHaveLength(1);
 
       // 2. Ação: Deletar o post
-      (api.delete as any).mockResolvedValue({});
+      mockApi.delete.mockResolvedValue({});
       
       await result.current.delete.mutateAsync(99);
 

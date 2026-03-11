@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useGetComments, useCreateComment, useDeleteComment, useUpdateComment } from "./useComments";
+import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
+import { useGetComments, useCreateComment, useDeleteComment } from "./useComments";
 import { useGetPosts } from "./usePosts";
 import api from "@/lib/api";
 import React from "react";
@@ -19,6 +19,13 @@ vi.mock("@/lib/api", () => ({
     },
   },
 }));
+
+const mockApi = api as unknown as {
+  get: Mock;
+  post: Mock;
+  patch: Mock;
+  delete: Mock;
+};
 
 // 2. Setup do QueryClient estável
 const createTestQueryClient = () => new QueryClient({
@@ -49,7 +56,7 @@ describe("useComments Hooks", () => {
       results: [{ id: 1, content: "Nice post!", username: "user1" }],
     };
 
-    (api.get as any).mockResolvedValue({ data: mockComments });
+    mockApi.get.mockResolvedValue({ data: mockComments });
 
     const { result } = renderHook(() => useGetComments(postId, true), { wrapper });
 
@@ -69,7 +76,7 @@ describe("useComments Hooks", () => {
     const initialComments = { count: 0, results: [] };
 
     // Mocks de rede
-    (api.get as any).mockImplementation((url: string) => {
+    mockApi.get.mockImplementation((url: string) => {
       if (url.includes("comments")) return Promise.resolve({ data: initialComments });
       return Promise.resolve({ data: initialPosts });
     });
@@ -84,7 +91,7 @@ describe("useComments Hooks", () => {
 
     // 2. Ação: Criar comentário
     const newComment = { id: 1, content: "First!", username: "tester" };
-    (api.post as any).mockResolvedValue({ data: newComment });
+    mockApi.post.mockResolvedValue({ data: newComment });
 
     await result.current.createComment.mutateAsync("First!");
 
@@ -113,7 +120,7 @@ describe("useComments Hooks", () => {
       results: [{ id: commentId, content: "Bye!", username: "user" }] 
     };
 
-    (api.get as any).mockImplementation((url: string) => {
+    mockApi.get.mockImplementation((url: string) => {
       if (url.includes("comments")) return Promise.resolve({ data: initialComments });
       return Promise.resolve({ data: initialPosts });
     });
@@ -127,7 +134,7 @@ describe("useComments Hooks", () => {
     await waitFor(() => expect(result.current.getComments.isSuccess).toBe(true));
 
     // 2. Ação: Deletar
-    (api.delete as any).mockResolvedValue({});
+    mockApi.delete.mockResolvedValue({});
     await result.current.deleteComment.mutateAsync(commentId);
 
     // 3. Validação
