@@ -1,5 +1,7 @@
 # CodeLeap Network
 
+[![Live Demo](https://img.shields.io/badge/demo-live-blue.svg)](https://codeleap-app.upafiliado.com.br)
+
 CodeLeap Network is a modern, responsive social media web application built with **Next.js 16** and **React 19**. It features a dynamic feed with real-time-like interactions, secure authentication, and a scalable architecture.
 
 ## 🚀 Features
